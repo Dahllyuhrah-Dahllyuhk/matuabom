@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: matuabom
+
+  be:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile
+    container_name: be
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      # 몽고 연결 정보 (Spring application-prod.yml 에서 사용)
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/matuabom
+
+      # JWT, Kakao, Google 관련 환경변수들
+      JWT_SECRET: ${JWT_SECRET}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      KAKAO_REDIRECT_URI: https://matuabom/login/oauth2/code/kakao
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: https://matuabom/login/oauth2/code/google
+
+      # CORS 등에서 사용할 FE 주소(배포 후 도메인으로 교체)
+      FRONTEND_ORIGIN: https://your-frontend-domain.com
+    ports:
+      - '8080:8080'
+
+  fe:
+    build:
+      context: ./FE
+    container_name: fe
+    restart: unless-stopped
+    depends_on:
+      - be
+    environment:
+      # Next.js 에서 사용할 BE 주소
+      NEXT_PUBLIC_API_BASE: http://be:8080
+      # 필요하면 추가 env
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+
+volumes:
+  mongo_data:
