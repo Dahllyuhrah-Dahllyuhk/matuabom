@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -25,7 +26,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    @Value("${app.frontend-base-url}")
+    @Value("${app.frontend-base-url:http://localhost:3000}")
     private String frontendBaseUrl;
 
     private final UserService userService;
