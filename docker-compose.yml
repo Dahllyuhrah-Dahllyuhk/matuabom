@@ -19,7 +19,6 @@ services:
     environment:
       # 몽고 연결 정보 (Spring application-prod.yml 에서 사용)
       SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/matuabom
-
       # JWT, Kakao, Google 관련 환경변수들
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
