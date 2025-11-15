@@ -40,9 +40,9 @@ export default function HomePage() {
   // 🔥 전역 refresh 트리거
   const { trigger, refresh } = useEventRefresh();
 
-  // 서버 응답 → 화면용 이벤트로 변환 (기존 mapRaw 로직 유지)
-  const mapRaw = (list: RawCalendarEvent[]): Event[] => {
-    return list
+  // 서버 응답 → 화면용 이벤트로 변환
+  const mapRaw = (list: RawCalendarEvent[]): Event[] =>
+    list
       .map((raw, idx) => {
         const baseEvent = mapRawToCalendarEvent(raw, idx);
         const existingColor = colorMap.get(raw.id);
@@ -54,14 +54,13 @@ export default function HomePage() {
       .filter(
         (e) =>
           !Number.isNaN(e.startDate.getTime()) &&
-          !Number.isNaN(e.endDate.getTime())
+          !Number.isNaN(e.endDate.getTime()),
       )
       .sort(
-        (a: Event, b: Event) => a.startDate.getTime() - b.startDate.getTime()
+        (a: Event, b: Event) => a.startDate.getTime() - b.startDate.getTime(),
       );
-  };
 
-  // ✅ 1) trigger 가 바뀔 때마다 전체 이벤트 다시 로딩
+  // ✅ trigger 가 바뀔 때마다 전체 이벤트 다시 로딩 (단일 진실 소스 = 서버)
   useEffect(() => {
     let cancelled = false;
 
@@ -69,7 +68,7 @@ export default function HomePage() {
       try {
         setIsLoading(true);
         setError(null);
-        const raw = await fetchAllCalendarEvents(); // 전체 기간 로딩
+        const raw = await fetchAllCalendarEvents();
         if (cancelled) return;
         setEvents(mapRaw(raw as RawCalendarEvent[]));
       } catch (err: any) {
@@ -86,11 +85,9 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
-  // ✅ 2) SSE 구독: BE(Webhook/증분 동기화) → FE 실시간 반영
+  // ✅ SSE 구독: BE(Webhook/증분 동기화) → FE 실시간 반영
   useEffect(() => {
-    // API_BASE 는 http://localhost:8080 같은 BE 주소
     const sseUrl = `${API_BASE}/api/sse/events`;
-
     const es = new EventSource(sseUrl);
 
     es.addEventListener('events-updated', () => {
@@ -99,7 +96,6 @@ export default function HomePage() {
     });
 
     es.onerror = () => {
-      // 네트워크 끊기면 일단 닫아둔다 (필요하면 재시도 로직 추가 가능)
       es.close();
     };
 
@@ -132,7 +128,7 @@ export default function HomePage() {
     setIsDialogOpen(true);
   };
 
-  // 모바일에서 날짜 셀의 "+" 버튼 같은 걸 눌렀을 때 호출된다고 가정
+  // 모바일에서 날짜 셀의 "+" 버튼 등
   const handleCreateNewEventFromBottomSheet = (date: Date) => {
     setSelectedDateRange({
       start: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
@@ -143,12 +139,10 @@ export default function HomePage() {
     setIsDialogOpen(true);
   };
 
-  // ✅ 기존 동기화 버튼: 구글 OAuth 시작
+  // ✅ 동기화 버튼: 구글 OAuth 시작
   const syncNow = () => {
     const base = API_BASE || 'http://localhost:8080';
     window.location.href = `${base}/oauth2/authorization/google`;
-    // 실제 동기화는 BE에서 처리 후, 다시 / 로 redirect 됨.
-    // 새로 진입하면서 useEffect(trigger) 가 동작해 다시 fetch 하므로 화면도 최신화.
   };
 
   // =============================
@@ -157,9 +151,6 @@ export default function HomePage() {
 
   const handleSaveEvent = async (event: Event) => {
     setIsDialogOpen(false);
-    if (event.id) {
-      setColorMap((prev) => new Map(prev).set(event.id, event.color));
-    }
     setSelectedEvent(null);
     setSelectedDateRange(null);
     setIsEditMode(false);
@@ -170,7 +161,7 @@ export default function HomePage() {
       const formatToISO = (
         date: Date,
         allDay: boolean,
-        isEndDate: boolean
+        isEndDate: boolean,
       ): string => {
         if (allDay) {
           // 종일 일정이면 끝 날짜에 +1일 해서 [start, end) 구간으로 저장
@@ -181,9 +172,8 @@ export default function HomePage() {
           const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
           const day = String(dateToUse.getDate()).padStart(2, '0');
           return `${year}-${month}-${day}`;
-        } else {
-          return date.toISOString();
         }
+        return date.toISOString();
       };
 
       const isAllDay = Boolean(event.allDay);
@@ -200,36 +190,30 @@ export default function HomePage() {
 
       if (selectedEvent) {
         // 수정
-        setEvents((prev) =>
-          prev.map((e) =>
-            e.id === selectedEvent.id ? { ...event, id: selectedEvent.id } : e
-          )
-        );
         await updateCalendarEvent(selectedEvent.id, requestPayload);
+
+        // 색상 override 가 필요하면 colorMap 갱신
+        setColorMap((prev) => {
+          const next = new Map(prev);
+          next.set(selectedEvent.id, event.color);
+          return next;
+        });
       } else {
         // 생성
-        const tempId = `temp-${Date.now()}`;
-        setEvents((prev) => [...prev, { ...event, id: tempId }]);
         const created = await createCalendarEvent(requestPayload);
+
         if (created?.id) {
-          setColorMap((prev) => new Map(prev).set(created.id, event.color));
+          setColorMap((prev) => {
+            const next = new Map(prev);
+            next.set(created.id, event.color);
+            return next;
+          });
         }
       }
-
-      // 한번 더 전체 동기화 (로컬 상태와 BE를 강제로 맞춰줌)
-      const raw = await fetchAllCalendarEvents();
-      setEvents(mapRaw(raw as RawCalendarEvent[]));
-
-      // 🔥 전역 refresh 트리거 → 다른 탭/컴포넌트도 최신화
-      refresh();
     } catch (err: any) {
       setError(err?.message ?? '일정 저장 중 오류가 발생했습니다');
-
-      // 실패 시에도 BE 기준으로 다시 맞춰둠
-      const raw = await fetchAllCalendarEvents();
-      setEvents(mapRaw(raw as RawCalendarEvent[]));
-
-      // 그래도 DB 업데이트가 있었다면 다른 곳도 맞춰야 하므로 refresh 한 번 날려도 됨
+    } finally {
+      // ✅ 로컬 state는 건드리지 않고, 항상 서버 기준으로 다시 로딩
       refresh();
     }
   };
@@ -241,30 +225,22 @@ export default function HomePage() {
 
     try {
       setError(null);
-      setEvents((prev) => prev.filter((e) => e.id !== eventId));
-      setColorMap((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(eventId);
-        return newMap;
-      });
-
       await deleteCalendarEvent(eventId);
 
-      const raw = await fetchAllCalendarEvents();
-      setEvents(mapRaw(raw as RawCalendarEvent[]));
-
-      // 🔥 삭제 후에도 전역 refresh
-      refresh();
+      // colorMap 정리
+      setColorMap((prev) => {
+        const next = new Map(prev);
+        next.delete(eventId);
+        return next;
+      });
     } catch (err: any) {
-      if (err?.message?.includes('410')) {
+      if ((err as any)?.message?.includes('410')) {
         setError('이미 삭제된 일정입니다. 동기화를 진행합니다.');
       } else {
         setError(err?.message ?? '일정 삭제 중 오류가 발생했습니다');
       }
-      const raw = await fetchAllCalendarEvents();
-      setEvents(mapRaw(raw as RawCalendarEvent[]));
-
-      // 에러 상황에서라도, DB 기준으로는 변경됐을 수 있으니 한 번 더 refresh
+    } finally {
+      // ✅ 삭제 후에도 서버 기준으로 다시 로딩
       refresh();
     }
   };
@@ -302,7 +278,10 @@ export default function HomePage() {
         <main className="flex-1 overflow-y-auto">
           <div className="p-4">
             {error && (
-              <Alert variant="destructive" className="mb-3 whitespace-pre-line">
+              <Alert
+                variant="destructive"
+                className="mb-3 whitespace-pre-line"
+              >
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
