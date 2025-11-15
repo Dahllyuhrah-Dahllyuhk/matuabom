@@ -3,6 +3,8 @@ services:
     image: mongo:7
     container_name: mongo
     restart: unless-stopped
+    networks:
+      - appnet
     ports:
       - '27017:27017'
     volumes:
@@ -16,6 +18,8 @@ services:
     restart: unless-stopped
     depends_on:
       - mongo
+    networks:
+      - appnet
     environment:
       SPRING_DATA_MONGODB_URI: 'mongodb://mongo:27017/matuabom'
 
@@ -23,13 +27,12 @@ services:
 
       KAKAO_CLIENT_ID: '${KAKAO_CLIENT_ID}'
       KAKAO_CLIENT_SECRET: '${KAKAO_CLIENT_SECRET}'
-      KAKAO_REDIRECT_URI: 'http://matuabom.store:8080/login/oauth2/code/kakao'
+      KAKAO_REDIRECT_URI: 'http://matuabom.store/login/oauth2/code/kakao'
 
       GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID}'
       GOOGLE_CLIENT_SECRET: '${GOOGLE_CLIENT_SECRET}'
-      GOOGLE_REDIRECT_URI: 'http://matuabom.store:8080/login/oauth2/code/google'
+      GOOGLE_REDIRECT_URI: 'http://matuabom.store/login/oauth2/code/google'
 
-      # FE 도메인 (배포 환경)
       FRONTEND_ORIGIN: 'https://matuabom.store'
       BACKEND_BASE_URL: https://matuabom.store
 
@@ -42,6 +45,8 @@ services:
     restart: unless-stopped
     depends_on:
       - be
+    networks:
+      - appnet
     environment:
       NEXT_PUBLIC_API_BASE: 'https://matuabom.store'
       NODE_ENV: 'production'
@@ -55,6 +60,8 @@ services:
     depends_on:
       - fe
       - be
+    networks:
+      - appnet
     ports:
       - '80:80'
       - '443:443'
@@ -64,3 +71,7 @@ services:
 
 volumes:
   mongo_data:
+
+networks:
+  appnet:
+    driver: bridge
