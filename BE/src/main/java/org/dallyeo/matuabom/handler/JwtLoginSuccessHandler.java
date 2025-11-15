@@ -168,7 +168,7 @@ public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
         googleOAuthClientService.saveTokens(userId, googleEmail, googleClient);
 
         // F. redispatch
-        response.sendRedirect(GOOGLE_REDIRECT_URL);
+        response.sendRedirect(frontendBaseUrl);
     }
 
 
