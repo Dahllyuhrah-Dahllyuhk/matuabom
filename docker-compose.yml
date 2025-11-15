@@ -1,10 +1,12 @@
+version: "3.9"
+
 services:
   mongo:
     image: mongo:7
     container_name: mongo
     restart: unless-stopped
     ports:
-      - '27017:27017'
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     environment:
@@ -17,21 +19,23 @@ services:
     depends_on:
       - mongo
     environment:
-      # 몽고 연결 정보 (Spring application-prod.yml 에서 사용)
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/matuabom
-      # JWT, Kakao, Google 관련 환경변수들
-      JWT_SECRET: ${JWT_SECRET}
-      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
-      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
-      KAKAO_REDIRECT_URI: http://matuabom.store:8080/login/oauth2/code/kakao
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: http://matuabom.store:8080/login/oauth2/code/google
+      SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/matuabom"
 
-      # CORS 등에서 사용할 FE 주소(배포 후 도메인으로 교체)
-      FRONTEND_ORIGIN: https://matuabom.store
+      JWT_SECRET: "${JWT_SECRET}"
+
+      KAKAO_CLIENT_ID: "${KAKAO_CLIENT_ID}"
+      KAKAO_CLIENT_SECRET: "${KAKAO_CLIENT_SECRET}"
+      KAKAO_REDIRECT_URI: "http://matuabom.store:8080/login/oauth2/code/kakao"
+
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      GOOGLE_REDIRECT_URI: "http://matuabom.store:8080/login/oauth2/code/google"
+
+      # FE 도메인 (배포 환경)
+      FRONTEND_ORIGIN: "https://matuabom.store"
+
     ports:
-      - '8080:8080'
+      - "8080:8080"
 
   fe:
     image: 774023531956.dkr.ecr.ap-northeast-2.amazonaws.com/matuabom-fe:latest
@@ -40,8 +44,11 @@ services:
     depends_on:
       - be
     environment:
+      NEXT_PUBLIC_API_BASE: "https://matuabom.store"
+      NODE_ENV: "production"
     ports:
-      - '3000:3000'
+      - "3000:3000"
+
   nginx:
     image: nginx:1.27
     container_name: nginx
@@ -53,9 +60,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # nginx 설정 파일
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # 인증서 (EC2 호스트의 certbot 경로 기준 예시)
       - /etc/letsencrypt:/etc/letsencrypt:ro
 
 volumes:
