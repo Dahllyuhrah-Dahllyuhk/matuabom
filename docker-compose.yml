@@ -29,7 +29,7 @@ services:
       GOOGLE_REDIRECT_URI: http://matuabom.store:8080/login/oauth2/code/google
 
       # CORS 등에서 사용할 FE 주소(배포 후 도메인으로 교체)
-      FRONTEND_ORIGIN: http://matuabom.store
+      FRONTEND_ORIGIN: https://matuabom.store
     ports:
       - '8080:8080'
 
@@ -40,8 +40,6 @@ services:
     depends_on:
       - be
     environment:
-      # 필요하면 추가 env
-      NODE_ENV: production
     ports:
       - '3000:3000'
   nginx:

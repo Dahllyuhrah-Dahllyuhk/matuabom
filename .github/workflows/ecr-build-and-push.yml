@@ -58,7 +58,7 @@ jobs:
           docker build \
             -t $FE_IMAGE:latest \
             -t $FE_IMAGE:${{ github.sha }} \
-            --build-arg NEXT_PUBLIC_API_BASE=http://matuabom.store \
+            --build-arg NEXT_PUBLIC_API_BASE=https://matuabom.store \
             ./FE
 
       - name: Push FE image
