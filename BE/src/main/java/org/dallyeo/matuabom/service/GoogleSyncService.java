@@ -4,12 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.dallyeo.matuabom.dto.CreateEventReq;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GoogleSyncService {
@@ -51,16 +49,13 @@ public class GoogleSyncService {
      */
     @Async("googleSyncExecutor")
     public void runIncrementalSync(String userId) {
-        log.info("[GoogleSyncService] incremental sync start for userId={}", userId);
         googleTokens.getTokens(userId).ifPresent(tokens -> {
             try {
                 googleCalendarService.incrementalSync(tokens);
                 googleTokens.save(tokens);
                 eventSseService.sendEventsUpdated();
-                log.info("[GoogleSyncService] incremental sync done for userId={}", userId);
             } catch (GeneralSecurityException | IOException e) {
                 e.printStackTrace();
-                log.error("[GoogleSyncService] incremental sync error for userId={}", userId, e);
             }
         });
     }
