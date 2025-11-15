@@ -24,10 +24,10 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
-      KAKAO_REDIRECT_URI: http://matuabom.store/login/oauth2/code/kakao
+      KAKAO_REDIRECT_URI: http://matuabom.store:8080/login/oauth2/code/kakao
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: http://matuabom.store/login/oauth2/code/google
+      GOOGLE_REDIRECT_URI: http://matuabom.store:8080/login/oauth2/code/google
 
       # CORS 등에서 사용할 FE 주소(배포 후 도메인으로 교체)
       FRONTEND_ORIGIN: http://matuabom.store
