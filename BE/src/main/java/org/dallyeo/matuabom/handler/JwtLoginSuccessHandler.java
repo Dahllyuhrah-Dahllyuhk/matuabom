@@ -25,8 +25,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    private static final String KAKAO_REDIRECT_URL = "http://localhost:3000";
-    private static final String GOOGLE_REDIRECT_URL = "http://localhost:3000";
+    @Value("${app.frontend-base-url}")
+    private String frontendBaseUrl;
 
     private final UserService userService;
     private final GoogleOAuthClientService googleOAuthClientService;
@@ -91,7 +91,7 @@ public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
         cookie.setMaxAge((int) Duration.ofHours(1).getSeconds());
         response.addCookie(cookie);
 
-        response.sendRedirect(KAKAO_REDIRECT_URL);
+        response.sendRedirect(frontendBaseUrl);
     }
 
     private KakaoUserInfo extractKakaoInfo(Authentication auth) {
@@ -148,7 +148,7 @@ public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
         String jwt = getCookie(request, "ACCESS_TOKEN");
         String userId = (jwt != null) ? jwtUtil.getUserIdFromToken(jwt) : null;
         if (userId == null) {
-            response.sendRedirect(GOOGLE_REDIRECT_URL);
+            response.sendRedirect(frontendBaseUrl);
             return;
         }
 
