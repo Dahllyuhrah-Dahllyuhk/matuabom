@@ -60,7 +60,7 @@ export default function HomePage() {
         (a: Event, b: Event) => a.startDate.getTime() - b.startDate.getTime(),
       );
 
-  // ✅ trigger 가 바뀔 때마다 전체 이벤트 다시 로딩 (단일 진실 소스 = 서버)
+  // ✅ trigger가 바뀔 때마다 전체 이벤트 다시 로딩
   useEffect(() => {
     let cancelled = false;
 
@@ -72,8 +72,9 @@ export default function HomePage() {
         if (cancelled) return;
         setEvents(mapRaw(raw as RawCalendarEvent[]));
       } catch (err: any) {
-        if (cancelled) return;
-        setError(err?.message ?? '데이터를 불러올 수 없습니다');
+        if (!cancelled) {
+          setError(err?.message ?? '데이터를 불러올 수 없습니다');
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -91,7 +92,6 @@ export default function HomePage() {
     const es = new EventSource(sseUrl);
 
     es.addEventListener('events-updated', () => {
-      // DB에서 일정 변경이 감지되면 전역 refresh 트리거
       refresh();
     });
 
@@ -128,7 +128,6 @@ export default function HomePage() {
     setIsDialogOpen(true);
   };
 
-  // 모바일에서 날짜 셀의 "+" 버튼 등
   const handleCreateNewEventFromBottomSheet = (date: Date) => {
     setSelectedDateRange({
       start: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
@@ -164,7 +163,6 @@ export default function HomePage() {
         isEndDate: boolean,
       ): string => {
         if (allDay) {
-          // 종일 일정이면 끝 날짜에 +1일 해서 [start, end) 구간으로 저장
           const dateToUse = isEndDate
             ? new Date(date.getTime() + 24 * 60 * 60 * 1000)
             : date;
@@ -192,7 +190,7 @@ export default function HomePage() {
         // 수정
         await updateCalendarEvent(selectedEvent.id, requestPayload);
 
-        // 색상 override 가 필요하면 colorMap 갱신
+        // 색상 override
         setColorMap((prev) => {
           const next = new Map(prev);
           next.set(selectedEvent.id, event.color);
@@ -201,7 +199,6 @@ export default function HomePage() {
       } else {
         // 생성
         const created = await createCalendarEvent(requestPayload);
-
         if (created?.id) {
           setColorMap((prev) => {
             const next = new Map(prev);
@@ -213,7 +210,7 @@ export default function HomePage() {
     } catch (err: any) {
       setError(err?.message ?? '일정 저장 중 오류가 발생했습니다');
     } finally {
-      // ✅ 로컬 state는 건드리지 않고, 항상 서버 기준으로 다시 로딩
+      // ✅ 실제 목록은 항상 서버 기준으로 다시 로딩
       refresh();
     }
   };
@@ -227,7 +224,7 @@ export default function HomePage() {
       setError(null);
       await deleteCalendarEvent(eventId);
 
-      // colorMap 정리
+      // 색상 캐시 제거
       setColorMap((prev) => {
         const next = new Map(prev);
         next.delete(eventId);

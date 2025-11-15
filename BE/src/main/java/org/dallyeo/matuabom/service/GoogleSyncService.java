@@ -14,7 +14,6 @@ public class GoogleSyncService {
 
     private final GoogleOAuthClientService googleTokens;
     private final GoogleCalendarService googleCalendarService;
-
     private final EventSseService eventSseService;
 
     /* ===========================
@@ -36,8 +35,11 @@ public class GoogleSyncService {
                 // 웹훅 채널 등록 (watch)
                 googleCalendarService.ensureWatchChannel(tokens);
                 googleTokens.save(tokens); // channelId/resourceId/expiration 반영
+
+                // 🔥 초기 동기화 끝나면 FE에게 알림
+                eventSseService.sendEventsUpdated();
             } catch (GeneralSecurityException | IOException e) {
-                e.printStackTrace(); // TODO: logger.warn(...)
+                e.printStackTrace();
             }
         });
     }
@@ -45,7 +47,6 @@ public class GoogleSyncService {
     /**
      * 구글에서 webhook 이 왔거나, 조회 시 최신화하고 싶을 때 사용
      * - GoogleWebhookController
-     * - (선택) CalendarEventService.getEvents 에서 호출
      */
     @Async("googleSyncExecutor")
     public void runIncrementalSync(String userId) {
@@ -53,6 +54,8 @@ public class GoogleSyncService {
             try {
                 googleCalendarService.incrementalSync(tokens);
                 googleTokens.save(tokens);
+
+                // 🔥 증분 동기화 끝나면 FE에게 알림
                 eventSseService.sendEventsUpdated();
             } catch (GeneralSecurityException | IOException e) {
                 e.printStackTrace();
@@ -75,7 +78,6 @@ public class GoogleSyncService {
             try {
                 googleCalendarService.createGoogleEvent(tokens, userId, req);
             } catch (GeneralSecurityException | IOException e) {
-                // TODO: 로그 남기기, 재시도 플래그 저장 등
                 e.printStackTrace();
             }
         });
@@ -90,7 +92,6 @@ public class GoogleSyncService {
             try {
                 googleCalendarService.updateGoogleEvent(tokens, userId, eventId, req);
             } catch (GeneralSecurityException | IOException e) {
-                // TODO: 로그/재시도
                 e.printStackTrace();
             }
         });
@@ -105,7 +106,6 @@ public class GoogleSyncService {
             try {
                 googleCalendarService.deleteGoogleEvent(tokens, userId, eventId);
             } catch (GeneralSecurityException | IOException e) {
-                // TODO: 로그/재시도
                 e.printStackTrace();
             }
         });
