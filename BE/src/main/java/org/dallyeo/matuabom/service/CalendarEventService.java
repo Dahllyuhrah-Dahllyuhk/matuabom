@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CalendarEventService {
@@ -56,6 +58,7 @@ public class CalendarEventService {
             throws GeneralSecurityException, IOException {
 
         String uid = userId();
+        log.info("[CalendarEventService] create called by uid={}", uid);
 
         // 1) 로컬 DB에 먼저 저장
         CalendarEventDto saved = googleCalendarService.createLocalEvent(req);
@@ -63,7 +66,9 @@ public class CalendarEventService {
         // 2) 구글 연동된 유저면, 구글 쪽은 비동기로 반영
         if (googleTokens.isLinked(uid)) {
             googleSyncService.syncCreateAsync(uid, req);
-        }
+        } else {
+                log.warn("[CalendarEventService] google linked = false for uid={}", uid);
+            }
 
         return saved;
     }
@@ -75,6 +80,7 @@ public class CalendarEventService {
             throws GeneralSecurityException, IOException {
 
         String uid = userId();
+        log.info("[CalendarEventService] create called by uid={}", uid);
 
         // 소유자 검증 (있으면)
         repository.findByIdAndUserEmail(eventId, uid)
@@ -86,7 +92,9 @@ public class CalendarEventService {
         // 2) 구글 연동된 유저면 비동기로 구글 쪽도 업데이트
         if (googleTokens.isLinked(uid)) {
             googleSyncService.syncUpdateAsync(uid, eventId, req);
-        }
+        } else {
+                log.warn("[CalendarEventService] google linked = false for uid={}", uid);
+            }
 
         return updated;
     }
@@ -96,6 +104,7 @@ public class CalendarEventService {
     // ==================================================
     public void delete(String eventId) throws GeneralSecurityException, IOException {
         String uid = userId();
+        log.info("[CalendarEventService] create called by uid={}", uid);
 
         // 소유자 검증
         repository.findByIdAndUserEmail(eventId, uid)
@@ -107,6 +116,8 @@ public class CalendarEventService {
         // 2) 구글 연동된 유저면 비동기로 구글 일정도 삭제
         if (googleTokens.isLinked(uid)) {
             googleSyncService.syncDeleteAsync(uid, eventId);
-        }
+        } else {
+                log.warn("[CalendarEventService] google linked = false for uid={}", uid);
+            }
     }
 }
