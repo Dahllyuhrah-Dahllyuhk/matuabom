@@ -4,10 +4,12 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.DateTime;
+import com.google.api.client.util.Value;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
 import com.google.api.services.calendar.model.Events;
+import com.google.api.services.calendar.model.Channel;
 import lombok.RequiredArgsConstructor;
 import org.dallyeo.matuabom.domain.GoogleOAuthClientEntity;
 import org.dallyeo.matuabom.dto.CalendarEventDto;
@@ -36,6 +38,9 @@ public class GoogleCalendarService {
     private static final DateTimeFormatter ISO_OFFSET_DT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
     private static final Pattern DATE_ONLY_RE = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
 
+    @Value("${app.backend-base-url:http://localhost:8080}")
+    private String backendBaseUrl;
+
     /* ==============================
        공통 유틸
        ============================== */
@@ -43,6 +48,39 @@ public class GoogleCalendarService {
     private boolean looksLikeDateOnly(String s) {
         return s != null && DATE_ONLY_RE.matcher(s.trim()).matches();
     }
+
+    public void ensureWatchChannel(GoogleOAuthClientEntity tokens)
+                throws GeneralSecurityException, IOException {
+
+            // 이미 유효한 채널이 있으면 스킵
+            if (tokens.getWatchExpiresAt() != null &&
+                    tokens.getWatchExpiresAt().isAfter(Instant.now().plusSeconds(60))) {
+                return;
+            }
+
+            Calendar client = buildCalendarClient(tokens);
+
+            Channel channel = new Channel();
+            channel.setId(UUID.randomUUID().toString());
+            channel.setType("web_hook");
+            // 배포 환경: https://matuabom.store/api/google/webhook
+            channel.setAddress(backendBaseUrl + "/api/google/webhook");
+            // 나중에 webhook 에서 유저 찾기 쉽게, userId를 token에 넣어둔다
+            channel.setToken(tokens.getUserId());
+
+            com.google.api.services.calendar.Calendar.Events.Watch watch =
+                    client.events().watch("primary", channel);
+
+            Channel created = watch.execute();
+
+            tokens.setWatchChannelId(created.getId());
+            tokens.setWatchResourceId(created.getResourceId());
+            if (created.getExpiration() != null) {
+                tokens.setWatchExpiresAt(
+                        Instant.ofEpochMilli(created.getExpiration())
+                );
+            }
+        }
 
     /** 문자열 → Instant 변환 */
     private Instant parseDate(String s, ZoneId zone) {

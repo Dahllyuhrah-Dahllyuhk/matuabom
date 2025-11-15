@@ -34,6 +34,8 @@ public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
     private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
     private final JwtUtil jwtUtil;
 
+    private final org.dallyeo.matuabom.service.GoogleSyncService googleSyncService;
+
     @Override
     public void onAuthenticationSuccess(
             HttpServletRequest request,
@@ -166,6 +168,8 @@ public class JwtLoginSuccessHandler implements AuthenticationSuccessHandler {
 
         // E. 토큰 DB 저장 (분리형 구조)
         googleOAuthClientService.saveTokens(userId, googleEmail, googleClient);
+
+        googleSyncService.runInitialSync(userId);
 
         // F. redispatch
         response.sendRedirect(frontendBaseUrl);
